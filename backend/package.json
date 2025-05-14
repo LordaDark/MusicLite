@@ -1,0 +1,19 @@
+{
+  "name": "musiclite-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "hono": "^4.7.9",
+    "@hono/node-server": "^1.14.1",
+    "@hono/trpc-server": "^0.3.4",
+    "@trpc/server": "^11.1.2",
+    "superjson": "^2.2.2",
+    "zod": "^3.24.4",
+    "ytdl-core": "^4.11.5",
+    "uuid": "^11.1.0"
+  }
+}
