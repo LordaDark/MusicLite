@@ -1,27 +1,28 @@
+import React from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, FlatList } from 'react-native';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { Image } from 'expo-image';
+import { Play, Heart, MoreVertical, ArrowLeft } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import SongItem from '@/components/SongItem';
-import Colors from '@/constants/colors';
 import { playlists } from '@/constants/mockData';
 import { usePlayerStore } from '@/store/playerStore';
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Heart, MoreVertical, Play } from 'lucide-react-native';
-import React from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function PlaylistScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { setCurrentSong, setQueue } = usePlayerStore();
+  const { colors } = useTheme();
   
   const playlist = playlists.find(p => p.id === id);
   
   if (!playlist) {
     return (
-      <View style={styles.notFoundContainer}>
-        <Text style={styles.notFoundText}>Playlist not found</Text>
+      <View style={[styles.notFoundContainer, { backgroundColor: colors.background }]}>
+        <Text style={[styles.notFoundText, { color: colors.text }]}>Playlist not found</Text>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backLink}>Go back</Text>
+          <Text style={[styles.backLink, { color: colors.primary }]}>Go back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -42,9 +43,9 @@ export default function PlaylistScreen() {
         }}
       />
       
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <LinearGradient
-          colors={['rgba(30,30,30,0.8)', Colors.dark.background]}
+          colors={['rgba(30,30,30,0.8)', colors.background]}
           style={styles.gradient}
         />
         
@@ -53,7 +54,7 @@ export default function PlaylistScreen() {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <ArrowLeft size={24} color={Colors.dark.text} />
+            <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
         
@@ -70,9 +71,9 @@ export default function PlaylistScreen() {
             />
             
             <View style={styles.playlistInfo}>
-              <Text style={styles.playlistName}>{playlist.name}</Text>
-              <Text style={styles.playlistDescription}>{playlist.description}</Text>
-              <Text style={styles.playlistStats}>
+              <Text style={[styles.playlistName, { color: colors.text }]}>{playlist.name}</Text>
+              <Text style={[styles.playlistDescription, { color: colors.subtext }]}>{playlist.description}</Text>
+              <Text style={[styles.playlistStats, { color: colors.subtext }]}>
                 {playlist.songs.length} songs
               </Text>
             </View>
@@ -80,19 +81,19 @@ export default function PlaylistScreen() {
           
           <View style={styles.actionsContainer}>
             <TouchableOpacity style={styles.iconButton}>
-              <Heart size={24} color={Colors.dark.text} />
+              <Heart size={24} color={colors.text} />
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.iconButton}>
-              <MoreVertical size={24} color={Colors.dark.text} />
+              <MoreVertical size={24} color={colors.text} />
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={styles.playButton}
+              style={[styles.playButton, { backgroundColor: colors.primary }]}
               onPress={handlePlayAll}
             >
-              <Play color={Colors.dark.background} size={24} />
-              <Text style={styles.playButtonText}>Play All</Text>
+              <Play color={colors.background} size={24} />
+              <Text style={[styles.playButtonText, { color: colors.background }]}>Play All</Text>
             </TouchableOpacity>
           </View>
           
@@ -115,7 +116,6 @@ export default function PlaylistScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.dark.background,
   },
   gradient: {
     position: 'absolute',
@@ -155,19 +155,16 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   playlistName: {
-    color: Colors.dark.text,
     fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
   },
   playlistDescription: {
-    color: Colors.dark.subtext,
     fontSize: 16,
     marginTop: 4,
     textAlign: 'center',
   },
   playlistStats: {
-    color: Colors.dark.subtext,
     fontSize: 14,
     marginTop: 8,
   },
@@ -184,14 +181,12 @@ const styles = StyleSheet.create({
   playButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.dark.primary,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 24,
     marginLeft: 16,
   },
   playButtonText: {
-    color: Colors.dark.background,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -203,15 +198,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.dark.background,
   },
   notFoundText: {
-    color: Colors.dark.text,
     fontSize: 18,
     fontWeight: '600',
   },
   backLink: {
-    color: Colors.dark.primary,
     fontSize: 16,
     marginTop: 16,
   },

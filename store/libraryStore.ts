@@ -1,7 +1,7 @@
-import { Playlist, Song, playlists as mockPlaylists } from '@/constants/mockData';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Song, Playlist, playlists as mockPlaylists } from '@/constants/mockData';
 
 interface LibraryState {
   downloadedSongs: Song[];
@@ -11,6 +11,7 @@ interface LibraryState {
   // Actions
   addDownloadedSong: (song: Song) => void;
   removeDownloadedSong: (songId: string) => void;
+  setDownloadedSongs: (songs: Song[]) => void;
   createPlaylist: (name: string, description: string, coverArt: string) => void;
   deletePlaylist: (playlistId: string) => void;
   addSongToPlaylist: (playlistId: string, song: Song) => void;
@@ -41,6 +42,8 @@ export const useLibraryStore = create<LibraryState>()(
       removeDownloadedSong: (songId) => set((state) => ({ 
         downloadedSongs: state.downloadedSongs.filter(song => song.id !== songId) 
       })),
+      
+      setDownloadedSongs: (songs) => set({ downloadedSongs: songs }),
       
       createPlaylist: (name, description, coverArt) => set((state) => {
         const newPlaylist: Playlist = {

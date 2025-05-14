@@ -1,7 +1,13 @@
-import { Song } from '@/constants/mockData';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Song } from '@/constants/mockData';
+import { 
+  playSong, 
+  pauseSong, 
+  resumeSong, 
+  seekToPosition 
+} from '@/services/audioService';
 
 interface PlayerState {
   currentSong: Song | null;
@@ -11,6 +17,7 @@ interface PlayerState {
   shuffleMode: boolean;
   progress: number;
   duration: number;
+  isMinimized: boolean;
   
   // Actions
   setCurrentSong: (song: Song | null) => void;
@@ -24,6 +31,8 @@ interface PlayerState {
   toggleShuffle: () => void;
   toggleRepeat: () => void;
   clearQueue: () => void;
+  minimizePlayer: () => void;
+  restorePlayer: () => void;
 }
 
 export const usePlayerStore = create<PlayerState>()(
@@ -36,8 +45,26 @@ export const usePlayerStore = create<PlayerState>()(
       shuffleMode: false,
       progress: 0,
       duration: 0,
+      isMinimized: false,
       
-      setCurrentSong: (song) => set({ currentSong: song, progress: 0, duration: song?.duration || 0 }),
+      setCurrentSong: async (song) => {
+        if (song) {
+          // Play the song using the audio service
+          const success = await playSong(song);
+          
+          if (success) {
+            set({ 
+              currentSong: song, 
+              progress: 0, 
+              duration: song.duration || 0,
+              isPlaying: true,
+              isMinimized: false // Ensure player is visible when a new song is set
+            });
+          }
+        } else {
+          set({ currentSong: null, isPlaying: false });
+        }
+      },
       
       setQueue: (songs) => set({ queue: songs }),
       
@@ -56,6 +83,7 @@ export const usePlayerStore = create<PlayerState>()(
           if (repeatMode === 'one') {
             // Just restart the current song
             set({ progress: 0 });
+            seekToPosition(0);
             return;
           } else if (repeatMode === 'all' && currentSong) {
             // Do nothing, we'll handle this in the component
@@ -71,12 +99,18 @@ export const usePlayerStore = create<PlayerState>()(
         const nextSong = queue[0];
         const newQueue = queue.slice(1);
         
-        set({ 
-          currentSong: nextSong, 
-          queue: newQueue,
-          progress: 0,
-          duration: nextSong.duration,
-          isPlaying: true
+        // Play the song using the audio service
+        playSong(nextSong).then(success => {
+          if (success) {
+            set({ 
+              currentSong: nextSong, 
+              queue: newQueue,
+              progress: 0,
+              duration: nextSong.duration,
+              isPlaying: true,
+              isMinimized: false // Ensure player is visible when playing next song
+            });
+          }
         });
       },
       
@@ -85,18 +119,42 @@ export const usePlayerStore = create<PlayerState>()(
         
         // If we're more than 3 seconds into the song, restart it
         if (progress > 3) {
+          seekToPosition(0);
           set({ progress: 0 });
           return;
         }
         
         // Otherwise, we'd need history to go back
         // For now, just restart the current song
+        seekToPosition(0);
         set({ progress: 0 });
       },
       
-      togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
+      togglePlay: async () => {
+        const { isPlaying, currentSong } = get();
+        
+        if (!currentSong) return;
+        
+        if (isPlaying) {
+          const success = await pauseSong();
+          if (success) {
+            set({ isPlaying: false });
+          }
+        } else {
+          const success = await resumeSong();
+          if (success) {
+            set({ isPlaying: true });
+          }
+        }
+      },
       
-      setProgress: (progress) => set({ progress }),
+      setProgress: async (progress) => {
+        // Update the progress in the store
+        set({ progress });
+        
+        // Seek to the position in the audio
+        await seekToPosition(progress);
+      },
       
       toggleShuffle: () => set((state) => ({ shuffleMode: !state.shuffleMode })),
       
@@ -108,6 +166,10 @@ export const usePlayerStore = create<PlayerState>()(
       }),
       
       clearQueue: () => set({ queue: [] }),
+
+      minimizePlayer: () => set({ isMinimized: true }),
+      
+      restorePlayer: () => set({ isMinimized: false }),
     }),
     {
       name: 'player-storage',

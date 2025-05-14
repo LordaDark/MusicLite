@@ -1,7 +1,7 @@
-import Colors from '@/constants/colors';
-import { ChevronRight } from 'lucide-react-native';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { ChevronRight } from 'lucide-react-native';
+import { useTheme } from '@/hooks/useTheme';
 
 interface SectionHeaderProps {
   title: string;
@@ -9,14 +9,16 @@ interface SectionHeaderProps {
 }
 
 const SectionHeader: React.FC<SectionHeaderProps> = ({ title, onSeeAll }) => {
+  const { colors } = useTheme();
+  
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
       
       {onSeeAll && (
         <TouchableOpacity onPress={onSeeAll} style={styles.seeAllButton}>
-          <Text style={styles.seeAllText}>See All</Text>
-          <ChevronRight size={16} color={Colors.dark.subtext} />
+          <Text style={[styles.seeAllText, { color: colors.subtext }]}>See All</Text>
+          <ChevronRight size={16} color={colors.subtext} />
         </TouchableOpacity>
       )}
     </View>
@@ -33,7 +35,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    color: Colors.dark.text,
     fontSize: 22,
     fontWeight: 'bold',
   },
@@ -42,7 +43,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   seeAllText: {
-    color: Colors.dark.subtext,
     fontSize: 14,
     marginRight: 4,
   },

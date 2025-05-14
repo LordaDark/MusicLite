@@ -1,38 +1,93 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, FlatList, Alert, RefreshControl } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Plus, RefreshCw } from 'lucide-react-native';
+import { useLibraryStore } from '@/store/libraryStore';
 import MusicCard from '@/components/MusicCard';
 import SongItem from '@/components/SongItem';
-import Colors from '@/constants/colors';
-import { useLibraryStore } from '@/store/libraryStore';
-import { useRouter } from 'expo-router';
-import { Plus } from 'lucide-react-native';
-import React, { useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import SectionHeader from '@/components/SectionHeader';
+import { useTheme } from '@/hooks/useTheme';
+import { useMusicLibrary } from '@/hooks/useMusicLibrary';
 
 export default function LibraryScreen() {
   const router = useRouter();
   const { downloadedSongs, userPlaylists, likedSongs } = useLibraryStore();
   const [activeTab, setActiveTab] = useState<'playlists' | 'downloads' | 'liked'>('playlists');
+  const { colors } = useTheme();
+  const { isLoading, hasPermission, refreshLibrary, localSongs } = useMusicLibrary();
+  const [refreshing, setRefreshing] = useState(false);
   
   const handlePlaylistPress = (playlistId: string) => {
     router.push(`/playlist/${playlistId}`);
   };
   
   const handleCreatePlaylist = () => {
-    // In a real app, this would open a modal to create a new playlist
-    console.log('Create new playlist');
+    // In un'app reale, questo aprirebbe una modale per creare una nuova playlist
+    Alert.alert(
+      "Crea Playlist",
+      "Inserisci un nome per la tua nuova playlist",
+      [
+        {
+          text: "Annulla",
+          style: "cancel"
+        },
+        {
+          text: "Crea",
+          onPress: () => console.log("Crea playlist")
+        }
+      ]
+    );
   };
   
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshLibrary(true); // Scansione completa
+    setRefreshing(false);
+  }, [refreshLibrary]);
+  
   const renderContent = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.emptyStateContainer}>
+          <Text style={[styles.emptyStateText, { color: colors.text }]}>
+            Caricamento della musica...
+          </Text>
+        </View>
+      );
+    }
+    
+    if (!hasPermission) {
+      return (
+        <View style={styles.emptyStateContainer}>
+          <Text style={[styles.emptyStateText, { color: colors.text }]}>
+            Permesso richiesto
+          </Text>
+          <Text style={[styles.emptyStateSubtext, { color: colors.subtext }]}>
+            MusicLite ha bisogno di accedere alla tua libreria multimediale per trovare e riprodurre la tua musica.
+          </Text>
+          <TouchableOpacity 
+            style={[styles.permissionButton, { backgroundColor: colors.primary }]}
+            onPress={() => refreshLibrary(true)}
+          >
+            <Text style={{ color: colors.background, fontWeight: '600' }}>
+              Concedi permesso
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    
     switch (activeTab) {
       case 'playlists':
         return (
           <>
             <View style={styles.createPlaylistContainer}>
               <TouchableOpacity 
-                style={styles.createPlaylistButton}
+                style={[styles.createPlaylistButton, { backgroundColor: colors.card }]}
                 onPress={handleCreatePlaylist}
               >
-                <Plus size={24} color={Colors.dark.text} />
-                <Text style={styles.createPlaylistText}>Create Playlist</Text>
+                <Plus size={24} color={colors.text} />
+                <Text style={[styles.createPlaylistText, { color: colors.text }]}>Crea Playlist</Text>
               </TouchableOpacity>
             </View>
             
@@ -51,48 +106,64 @@ export default function LibraryScreen() {
         );
       
       case 'downloads':
-        return downloadedSongs.length > 0 ? (
-          <FlatList
-            data={downloadedSongs}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <SongItem 
-                song={item} 
-                showDownload={false}
-              />
-            )}
-            scrollEnabled={false}
-          />
+        return localSongs.length > 0 ? (
+          <>
+            <View style={styles.refreshContainer}>
+              <TouchableOpacity 
+                style={[styles.refreshButton, { backgroundColor: colors.card }]}
+                onPress={() => refreshLibrary(true)}
+              >
+                <RefreshCw size={18} color={colors.text} />
+                <Text style={[styles.refreshText, { color: colors.text }]}>Aggiorna libreria</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={localSongs}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <SongItem 
+                  song={item} 
+                  showDownload={false}
+                />
+              )}
+              scrollEnabled={false}
+            />
+          </>
         ) : (
           <View style={styles.emptyStateContainer}>
-            <Text style={styles.emptyStateText}>
-              No downloaded songs yet
+            <Text style={[styles.emptyStateText, { color: colors.text }]}>
+              Nessuna musica trovata
             </Text>
-            <Text style={styles.emptyStateSubtext}>
-              Songs you download will appear here
+            <Text style={[styles.emptyStateSubtext, { color: colors.subtext }]}>
+              Aggiungi musica al tuo dispositivo o aggiorna la tua libreria
             </Text>
+            <TouchableOpacity 
+              style={[styles.refreshButton, { backgroundColor: colors.card, marginTop: 16 }]}
+              onPress={() => refreshLibrary(true)}
+            >
+              <RefreshCw size={18} color={colors.text} />
+              <Text style={[styles.refreshText, { color: colors.text }]}>Aggiorna libreria</Text>
+            </TouchableOpacity>
           </View>
         );
       
       case 'liked':
-        return likedSongs.length > 0 ? (
+        const likedSongsList = localSongs.filter(song => likedSongs.includes(song.id));
+        
+        return likedSongsList.length > 0 ? (
           <FlatList
-            data={likedSongs}
-            keyExtractor={(id) => id}
-            renderItem={({ item: id }) => {
-              const song = downloadedSongs.find(s => s.id === id);
-              if (!song) return null;
-              return <SongItem song={song} />;
-            }}
+            data={likedSongsList}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => <SongItem song={item} />}
             scrollEnabled={false}
           />
         ) : (
           <View style={styles.emptyStateContainer}>
-            <Text style={styles.emptyStateText}>
-              No liked songs yet
+            <Text style={[styles.emptyStateText, { color: colors.text }]}>
+              Nessuna canzone piaciuta
             </Text>
-            <Text style={styles.emptyStateSubtext}>
-              Songs you like will appear here
+            <Text style={[styles.emptyStateSubtext, { color: colors.subtext }]}>
+              Le canzoni che ti piacciono appariranno qui
             </Text>
           </View>
         );
@@ -100,56 +171,59 @@ export default function LibraryScreen() {
   };
   
   return (
-    <View style={styles.container}>
-      <View style={styles.tabsContainer}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.tabsContainer, { borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={[
             styles.tabButton,
-            activeTab === 'playlists' && styles.activeTabButton
+            activeTab === 'playlists' && [styles.activeTabButton, { backgroundColor: colors.card }]
           ]}
           onPress={() => setActiveTab('playlists')}
         >
           <Text 
             style={[
               styles.tabText,
-              activeTab === 'playlists' && styles.activeTabText
+              { color: colors.subtext },
+              activeTab === 'playlists' && { color: colors.text }
             ]}
           >
-            Playlists
+            Playlist
           </Text>
         </TouchableOpacity>
         
         <TouchableOpacity
           style={[
             styles.tabButton,
-            activeTab === 'downloads' && styles.activeTabButton
+            activeTab === 'downloads' && [styles.activeTabButton, { backgroundColor: colors.card }]
           ]}
           onPress={() => setActiveTab('downloads')}
         >
           <Text 
             style={[
               styles.tabText,
-              activeTab === 'downloads' && styles.activeTabText
+              { color: colors.subtext },
+              activeTab === 'downloads' && { color: colors.text }
             ]}
           >
-            Downloads
+            Download
           </Text>
         </TouchableOpacity>
         
         <TouchableOpacity
           style={[
             styles.tabButton,
-            activeTab === 'liked' && styles.activeTabButton
+            activeTab === 'liked' && [styles.activeTabButton, { backgroundColor: colors.card }]
           ]}
           onPress={() => setActiveTab('liked')}
         >
           <Text 
             style={[
               styles.tabText,
-              activeTab === 'liked' && styles.activeTabText
+              { color: colors.subtext },
+              activeTab === 'liked' && { color: colors.text }
             ]}
           >
-            Liked
+            Preferiti
           </Text>
         </TouchableOpacity>
       </View>
@@ -157,6 +231,9 @@ export default function LibraryScreen() {
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         {renderContent()}
         <View style={{ height: 80 }} />
@@ -168,14 +245,12 @@ export default function LibraryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.dark.background,
   },
   tabsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
   },
   tabButton: {
     paddingVertical: 8,
@@ -184,15 +259,11 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   activeTabButton: {
-    backgroundColor: Colors.dark.card,
+    
   },
   tabText: {
-    color: Colors.dark.subtext,
     fontSize: 14,
     fontWeight: '500',
-  },
-  activeTabText: {
-    color: Colors.dark.text,
   },
   contentContainer: {
     paddingBottom: 20,
@@ -203,12 +274,10 @@ const styles = StyleSheet.create({
   createPlaylistButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.dark.card,
     padding: 16,
     borderRadius: 8,
   },
   createPlaylistText: {
-    color: Colors.dark.text,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 12,
@@ -226,15 +295,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   emptyStateText: {
-    color: Colors.dark.text,
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
   },
   emptyStateSubtext: {
-    color: Colors.dark.subtext,
     fontSize: 14,
     textAlign: 'center',
     marginTop: 8,
+  },
+  permissionButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  refreshContainer: {
+    padding: 16,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    justifyContent: 'center',
+  },
+  refreshText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 });

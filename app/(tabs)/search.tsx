@@ -1,82 +1,101 @@
-import MusicCard from '@/components/MusicCard';
-import SearchBar from '@/components/SearchBar';
-import SectionHeader from '@/components/SectionHeader';
-import SongItem from '@/components/SongItem';
-import Colors from '@/constants/colors';
-import { artists, genres, songs } from '@/constants/mockData';
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, FlatList, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import SearchBar from '@/components/SearchBar';
+import SongItem from '@/components/SongItem';
+import MusicCard from '@/components/MusicCard';
+import SectionHeader from '@/components/SectionHeader';
+import { artists, genres } from '@/constants/mockData';
+import { useTheme } from '@/hooks/useTheme';
+import { searchYouTubeSongs } from '@/services/metadataService';
+import { ActivityIndicator } from 'react-native';
 
 export default function SearchScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<{
-    songs: typeof songs;
-    artists: typeof artists;
-  }>({ songs: [], artists: [] });
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
   
-  useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setSearchResults({ songs: [], artists: [] });
+  // Funzione per cercare su YouTube
+  const searchOnYouTube = useCallback(async (query: string) => {
+    if (query.trim() === '') {
+      setSearchResults([]);
       return;
     }
     
-    const query = searchQuery.toLowerCase();
+    setIsSearching(true);
+    try {
+      const results = await searchYouTubeSongs(query);
+      setSearchResults(results);
+    } catch (error) {
+      console.error("Errore nella ricerca:", error);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+  
+  // Debounce per la ricerca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim().length > 2) {
+        searchOnYouTube(searchQuery);
+      }
+    }, 500);
     
-    const filteredSongs = songs.filter(
-      song => 
-        song.title.toLowerCase().includes(query) || 
-        song.artist.toLowerCase().includes(query) ||
-        song.album.toLowerCase().includes(query)
-    );
-    
-    const filteredArtists = artists.filter(
-      artist => artist.name.toLowerCase().includes(query)
-    );
-    
-    setSearchResults({
-      songs: filteredSongs,
-      artists: filteredArtists
-    });
-  }, [searchQuery]);
+    return () => clearTimeout(timer);
+  }, [searchQuery, searchOnYouTube]);
   
   const handleClearSearch = () => {
     setSearchQuery('');
+    setSearchResults([]);
   };
   
   const handleGenrePress = (genre: string) => {
-    // In a real app, this would navigate to a genre-specific page
-    console.log(`Selected genre: ${genre}`);
+    // In un'app reale, questo navigherebbe a una pagina specifica per il genere
+    setSearchQuery(genre);
   };
   
   const handleArtistPress = (artistId: string) => {
     router.push(`/artist/${artistId}`);
   };
   
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    if (searchQuery.trim().length > 2) {
+      await searchOnYouTube(searchQuery);
+    }
+    setRefreshing(false);
+  }, [searchQuery, searchOnYouTube]);
+  
   const renderGenreItem = ({ item }: { item: string }) => (
     <TouchableOpacity 
-      style={styles.genreItem}
+      style={[styles.genreItem, { backgroundColor: colors.card }]}
       onPress={() => handleGenrePress(item)}
     >
-      <Text style={styles.genreText}>{item}</Text>
+      <Text style={[styles.genreText, { color: colors.text }]}>{item}</Text>
     </TouchableOpacity>
   );
   
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <SearchBar
         value={searchQuery}
         onChangeText={setSearchQuery}
         onClear={handleClearSearch}
+        placeholder="Cerca canzoni, artisti o album su YouTube"
       />
       
       {searchQuery.trim() === '' ? (
         <ScrollView 
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.contentContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         >
-          <SectionHeader title="Browse All" />
+          <SectionHeader title="Sfoglia per genere" />
           <FlatList
             data={genres}
             keyExtractor={(item) => item}
@@ -86,7 +105,7 @@ export default function SearchScreen() {
             contentContainerStyle={styles.genreList}
           />
           
-          <SectionHeader title="Popular Artists" />
+          <SectionHeader title="Artisti popolari" />
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
@@ -113,53 +132,42 @@ export default function SearchScreen() {
         <ScrollView 
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.resultsContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         >
-          {searchResults.artists.length > 0 && (
-            <>
-              <SectionHeader title="Artists" />
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.horizontalList}
-              >
-                {searchResults.artists.map((artist) => (
-                  <MusicCard
-                    key={artist.id}
-                    item={{
-                      id: artist.id,
-                      name: artist.name,
-                      coverArt: artist.image,
-                      description: artist.genres.join(', ')
-                    }}
-                    onPress={() => handleArtistPress(artist.id)}
-                    size="small"
-                  />
-                ))}
-              </ScrollView>
-            </>
-          )}
-          
-          {searchResults.songs.length > 0 && (
-            <>
-              <SectionHeader title="Songs" />
-              <FlatList
-                data={searchResults.songs}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => <SongItem song={item} />}
-                scrollEnabled={false}
-              />
-            </>
-          )}
-          
-          {searchResults.songs.length === 0 && searchResults.artists.length === 0 && (
-            <View style={styles.noResultsContainer}>
-              <Text style={styles.noResultsText}>
-                No results found for "{searchQuery}"
-              </Text>
-              <Text style={styles.noResultsSubtext}>
-                Try searching for songs, artists, or albums
+          {isSearching ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.text }]}>
+                Ricerca in corso...
               </Text>
             </View>
+          ) : (
+            <>
+              {searchResults.length > 0 ? (
+                <>
+                  <SectionHeader title="Risultati da YouTube" />
+                  <FlatList
+                    data={searchResults}
+                    keyExtractor={(item, index) => item.id || `result-${index}`}
+                    renderItem={({ item }) => <SongItem song={item} />}
+                    scrollEnabled={false}
+                  />
+                </>
+              ) : (
+                searchQuery.trim().length > 2 && (
+                  <View style={styles.noResultsContainer}>
+                    <Text style={[styles.noResultsText, { color: colors.text }]}>
+                      Nessun risultato trovato per "{searchQuery}"
+                    </Text>
+                    <Text style={[styles.noResultsSubtext, { color: colors.subtext }]}>
+                      Prova a cercare canzoni, artisti o album
+                    </Text>
+                  </View>
+                )
+              )}
+            </>
           )}
           
           <View style={{ height: 80 }} />
@@ -172,7 +180,6 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.dark.background,
   },
   contentContainer: {
     paddingBottom: 20,
@@ -192,12 +199,10 @@ const styles = StyleSheet.create({
     margin: 8,
     height: 100,
     borderRadius: 8,
-    backgroundColor: Colors.dark.card,
     justifyContent: 'center',
     alignItems: 'center',
   },
   genreText: {
-    color: Colors.dark.text,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -209,15 +214,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   noResultsText: {
-    color: Colors.dark.text,
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
   },
   noResultsSubtext: {
-    color: Colors.dark.subtext,
     fontSize: 14,
     textAlign: 'center',
     marginTop: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
+  loadingText: {
+    fontSize: 16,
+    marginTop: 16,
   },
 });

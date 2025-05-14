@@ -1,25 +1,28 @@
-import PlayerControls from '@/components/PlayerControls';
-import Colors from '@/constants/colors';
-import { useLibraryStore } from '@/store/libraryStore';
-import { usePlayerStore } from '@/store/playerStore';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { ChevronDown, Heart } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { usePlayerStore } from '@/store/playerStore';
+import { useLibraryStore } from '@/store/libraryStore';
+import PlayerControls from '@/components/PlayerControls';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function PlayerScreen() {
   const router = useRouter();
-  const { currentSong, isPlaying } = usePlayerStore();
+  const { currentSong, isPlaying, restorePlayer } = usePlayerStore();
   const { toggleLikeSong, isLiked } = useLibraryStore();
+  const { colors } = useTheme();
   const [liked, setLiked] = useState(false);
   
   useEffect(() => {
     if (currentSong) {
       setLiked(isLiked(currentSong.id));
+      // Ensure the mini player is restored when navigating to the full player
+      restorePlayer();
     }
-  }, [currentSong, isLiked]);
+  }, [currentSong, isLiked, restorePlayer]);
   
   const handleLike = () => {
     if (currentSong) {
@@ -34,9 +37,9 @@ export default function PlayerScreen() {
   }
   
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={['rgba(0,0,0,0.8)', Colors.dark.background]}
+        colors={['rgba(0,0,0,0.8)', colors.background]}
         style={styles.gradient}
       />
       
@@ -45,11 +48,11 @@ export default function PlayerScreen() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <ChevronDown size={24} color={Colors.dark.text} />
+          <ChevronDown size={24} color={colors.text} />
         </TouchableOpacity>
         
         <View style={styles.headerTextContainer}>
-          <Text style={styles.headerTitle}>Now Playing</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Now Playing</Text>
         </View>
         
         <View style={styles.placeholder} />
@@ -67,8 +70,8 @@ export default function PlayerScreen() {
       <View style={styles.infoContainer}>
         <View style={styles.titleContainer}>
           <View>
-            <Text style={styles.songTitle}>{currentSong.title}</Text>
-            <Text style={styles.artistName}>{currentSong.artist}</Text>
+            <Text style={[styles.songTitle, { color: colors.text }]}>{currentSong.title}</Text>
+            <Text style={[styles.artistName, { color: colors.subtext }]}>{currentSong.artist}</Text>
           </View>
           
           <TouchableOpacity 
@@ -77,8 +80,8 @@ export default function PlayerScreen() {
           >
             <Heart 
               size={24} 
-              color={liked ? Colors.dark.primary : Colors.dark.text} 
-              fill={liked ? Colors.dark.primary : 'transparent'}
+              color={liked ? colors.primary : colors.text} 
+              fill={liked ? colors.primary : 'transparent'}
             />
           </TouchableOpacity>
         </View>
@@ -86,10 +89,10 @@ export default function PlayerScreen() {
         <PlayerControls />
         
         <View style={styles.additionalInfo}>
-          <Text style={styles.albumName}>
+          <Text style={[styles.albumName, { color: colors.subtext }]}>
             Album: {currentSong.album}
           </Text>
-          <Text style={styles.genreText}>
+          <Text style={[styles.genreText, { color: colors.subtext }]}>
             Genre: {currentSong.genre}
           </Text>
         </View>
@@ -103,7 +106,6 @@ const { width } = Dimensions.get('window');
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.dark.background,
   },
   gradient: {
     position: 'absolute',
@@ -128,7 +130,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    color: Colors.dark.text,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -160,12 +161,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   songTitle: {
-    color: Colors.dark.text,
     fontSize: 24,
     fontWeight: 'bold',
   },
   artistName: {
-    color: Colors.dark.subtext,
     fontSize: 18,
     marginTop: 4,
   },
@@ -176,12 +175,10 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
   albumName: {
-    color: Colors.dark.subtext,
     fontSize: 14,
     marginBottom: 4,
   },
   genreText: {
-    color: Colors.dark.subtext,
     fontSize: 14,
   },
 });

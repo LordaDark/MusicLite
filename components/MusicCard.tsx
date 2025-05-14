@@ -1,10 +1,10 @@
-import Colors from '@/constants/colors';
-import { Song } from '@/constants/mockData';
-import { usePlayerStore } from '@/store/playerStore';
+import React from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { Play } from 'lucide-react-native';
-import React from 'react';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { usePlayerStore } from '@/store/playerStore';
+import { Song } from '@/constants/mockData';
+import { useTheme } from '@/hooks/useTheme';
 
 interface MusicCardProps {
   item: {
@@ -28,6 +28,7 @@ const MusicCard: React.FC<MusicCardProps> = ({
 }) => {
   const setCurrentSong = usePlayerStore(state => state.setCurrentSong);
   const setQueue = usePlayerStore(state => state.setQueue);
+  const { colors } = useTheme();
   
   const handlePlay = () => {
     if (songs && songs.length > 0) {
@@ -51,7 +52,11 @@ const MusicCard: React.FC<MusicCardProps> = ({
   
   return (
     <TouchableOpacity 
-      style={[styles.container, getCardSize()]} 
+      style={[
+        styles.container, 
+        getCardSize(),
+        { backgroundColor: colors.card }
+      ]} 
       onPress={onPress}
       activeOpacity={0.7}
     >
@@ -64,18 +69,18 @@ const MusicCard: React.FC<MusicCardProps> = ({
       
       <View style={styles.overlay}>
         <TouchableOpacity 
-          style={styles.playButton}
+          style={[styles.playButton, { backgroundColor: colors.primary }]}
           onPress={handlePlay}
         >
-          <Play color={Colors.dark.background} size={24} />
+          <Play color={colors.background} size={24} />
         </TouchableOpacity>
       </View>
       
       <View style={styles.textContainer}>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
           {item.title || item.name}
         </Text>
-        <Text style={styles.subtitle} numberOfLines={1}>
+        <Text style={[styles.subtitle, { color: colors.subtext }]} numberOfLines={1}>
           {item.artist || item.description || ''}
         </Text>
       </View>
@@ -88,7 +93,6 @@ const styles = StyleSheet.create({
     marginRight: 12,
     marginBottom: 16,
     borderRadius: 8,
-    backgroundColor: Colors.dark.card,
     overflow: 'hidden',
   },
   image: {
@@ -112,7 +116,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.dark.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -122,12 +125,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    color: Colors.dark.text,
     fontSize: 14,
     fontWeight: '600',
   },
   subtitle: {
-    color: Colors.dark.subtext,
     fontSize: 12,
     marginTop: 2,
   },

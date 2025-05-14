@@ -1,12 +1,12 @@
-import Colors from '@/constants/colors';
-import { Song } from '@/constants/mockData';
-import { useLibraryStore } from '@/store/libraryStore';
-import { usePlayerStore } from '@/store/playerStore';
-import { formatDuration } from '@/utils/timeUtils';
-import { Image } from 'expo-image';
-import { Check, Download, MoreVertical } from 'lucide-react-native';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
+import { Play, MoreVertical, Download, Check } from 'lucide-react-native';
+import { usePlayerStore } from '@/store/playerStore';
+import { useLibraryStore } from '@/store/libraryStore';
+import { Song } from '@/constants/mockData';
+import { formatDuration } from '@/utils/timeUtils';
+import { useTheme } from '@/hooks/useTheme';
 
 interface SongItemProps {
   song: Song;
@@ -25,6 +25,7 @@ const SongItem: React.FC<SongItemProps> = ({
 }) => {
   const { setCurrentSong, currentSong, isPlaying, togglePlay } = usePlayerStore();
   const { addDownloadedSong, downloadedSongs } = useLibraryStore();
+  const { colors } = useTheme();
   
   const isCurrentSong = currentSong?.id === song.id;
   const isDownloaded = downloadedSongs.some(s => s.id === song.id) || song.isDownloaded;
@@ -48,7 +49,7 @@ const SongItem: React.FC<SongItemProps> = ({
   
   return (
     <TouchableOpacity 
-      style={styles.container} 
+      style={[styles.container, { backgroundColor: colors.background }]} 
       onPress={handlePress}
       activeOpacity={0.7}
     >
@@ -63,7 +64,7 @@ const SongItem: React.FC<SongItemProps> = ({
         <Text 
           style={[
             styles.title, 
-            isCurrentSong && styles.activeText
+            { color: isCurrentSong ? colors.primary : colors.text }
           ]} 
           numberOfLines={1}
         >
@@ -71,7 +72,7 @@ const SongItem: React.FC<SongItemProps> = ({
         </Text>
         
         {showArtist && (
-          <Text style={styles.artist} numberOfLines={1}>
+          <Text style={[styles.artist, { color: colors.subtext }]} numberOfLines={1}>
             {song.artist} {showAlbum ? `• ${song.album}` : ''}
           </Text>
         )}
@@ -85,19 +86,19 @@ const SongItem: React.FC<SongItemProps> = ({
             disabled={isDownloaded}
           >
             {isDownloaded ? (
-              <Check size={18} color={Colors.dark.primary} />
+              <Check size={18} color={colors.primary} />
             ) : (
-              <Download size={18} color={Colors.dark.subtext} />
+              <Download size={18} color={colors.subtext} />
             )}
           </TouchableOpacity>
         )}
         
-        <Text style={styles.duration}>
+        <Text style={[styles.duration, { color: colors.subtext }]}>
           {formatDuration(song.duration)}
         </Text>
         
         <TouchableOpacity style={styles.iconButton}>
-          <MoreVertical size={18} color={Colors.dark.subtext} />
+          <MoreVertical size={18} color={colors.subtext} />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -110,7 +111,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: Colors.dark.background,
   },
   image: {
     width: 48,
@@ -123,15 +123,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    color: Colors.dark.text,
     fontSize: 16,
     fontWeight: '500',
   },
-  activeText: {
-    color: Colors.dark.primary,
-  },
   artist: {
-    color: Colors.dark.subtext,
     fontSize: 14,
     marginTop: 2,
   },
@@ -143,7 +138,6 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   duration: {
-    color: Colors.dark.subtext,
     fontSize: 14,
     marginRight: 8,
   },

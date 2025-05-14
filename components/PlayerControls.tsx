@@ -1,10 +1,10 @@
-import Colors from '@/constants/colors';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { Play, Pause, SkipForward, SkipBack, Repeat, Repeat1, Shuffle } from 'lucide-react-native';
+import Slider from '@react-native-community/slider';
 import { usePlayerStore } from '@/store/playerStore';
 import { formatDuration } from '@/utils/timeUtils';
-import Slider from '@react-native-community/slider';
-import { Pause, Play, Repeat, Repeat1, Shuffle, SkipBack, SkipForward } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '@/hooks/useTheme';
 
 const PlayerControls: React.FC = () => {
   const { 
@@ -21,6 +21,7 @@ const PlayerControls: React.FC = () => {
     toggleShuffle
   } = usePlayerStore();
   
+  const { colors } = useTheme();
   const [localProgress, setLocalProgress] = useState(0);
   
   useEffect(() => {
@@ -38,7 +39,7 @@ const PlayerControls: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.sliderContainer}>
-        <Text style={styles.timeText}>
+        <Text style={[styles.timeText, { color: colors.subtext }]}>
           {formatDuration(localProgress)}
         </Text>
         
@@ -49,12 +50,12 @@ const PlayerControls: React.FC = () => {
           value={localProgress}
           onValueChange={handleSliderChange}
           onSlidingComplete={handleSliderComplete}
-          minimumTrackTintColor={Colors.dark.primary}
-          maximumTrackTintColor={Colors.dark.border}
-          thumbTintColor={Colors.dark.primary}
+          minimumTrackTintColor={colors.primary}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.primary}
         />
         
-        <Text style={styles.timeText}>
+        <Text style={[styles.timeText, { color: colors.subtext }]}>
           {formatDuration(duration)}
         </Text>
       </View>
@@ -65,7 +66,7 @@ const PlayerControls: React.FC = () => {
           onPress={toggleShuffle}
         >
           <Shuffle 
-            color={shuffleMode ? Colors.dark.primary : Colors.dark.subtext} 
+            color={shuffleMode ? colors.primary : colors.subtext} 
             size={20} 
           />
         </TouchableOpacity>
@@ -74,17 +75,17 @@ const PlayerControls: React.FC = () => {
           style={styles.controlButton} 
           onPress={playPrevious}
         >
-          <SkipBack color={Colors.dark.text} size={24} />
+          <SkipBack color={colors.text} size={24} />
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={styles.playButton} 
+          style={[styles.playButton, { backgroundColor: colors.primary }]} 
           onPress={togglePlay}
         >
           {isPlaying ? (
-            <Pause color={Colors.dark.background} size={28} />
+            <Pause color={colors.background} size={28} />
           ) : (
-            <Play color={Colors.dark.background} size={28} />
+            <Play color={colors.background} size={28} />
           )}
         </TouchableOpacity>
         
@@ -92,7 +93,7 @@ const PlayerControls: React.FC = () => {
           style={styles.controlButton} 
           onPress={playNext}
         >
-          <SkipForward color={Colors.dark.text} size={24} />
+          <SkipForward color={colors.text} size={24} />
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -100,10 +101,10 @@ const PlayerControls: React.FC = () => {
           onPress={toggleRepeat}
         >
           {repeatMode === 'one' ? (
-            <Repeat1 color={Colors.dark.primary} size={20} />
+            <Repeat1 color={colors.primary} size={20} />
           ) : (
             <Repeat 
-              color={repeatMode === 'all' ? Colors.dark.primary : Colors.dark.subtext} 
+              color={repeatMode === 'all' ? colors.primary : colors.subtext} 
               size={20} 
             />
           )}
@@ -129,7 +130,6 @@ const styles = StyleSheet.create({
     height: 40,
   },
   timeText: {
-    color: Colors.dark.subtext,
     fontSize: 12,
     width: 40,
     textAlign: 'center',
@@ -149,7 +149,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: Colors.dark.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },

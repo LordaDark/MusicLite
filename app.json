@@ -22,7 +22,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.musiclite.musicliteappmusicaleintelligente"
+      "package": "app.rork.musiclite-app-musicale-intelligente"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -37,14 +37,6 @@
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "router": {
-        "origin": "https://rork.app/"
-      },
-      "eas": {
-        "projectId": "863a5a31-a635-4975-917f-93e28469f518"
-      }
     }
   }
 }

@@ -1,14 +1,15 @@
-import Colors from '@/constants/colors';
-import { usePlayerStore } from '@/store/playerStore';
-import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import { Pause, Play, SkipForward } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Dimensions } from 'react-native';
+import { Image } from 'expo-image';
+import { Play, Pause, SkipForward, X } from 'lucide-react-native';
+import { usePlayerStore } from '@/store/playerStore';
+import { useRouter } from 'expo-router';
+import { useTheme } from '@/hooks/useTheme';
 
 const MiniPlayer: React.FC = () => {
-  const { currentSong, isPlaying, togglePlay, playNext, progress, duration } = usePlayerStore();
+  const { currentSong, isPlaying, togglePlay, playNext, progress, duration, isMinimized, minimizePlayer } = usePlayerStore();
   const router = useRouter();
+  const { colors } = useTheme();
   const [progressWidth, setProgressWidth] = useState(0);
   
   useEffect(() => {
@@ -19,17 +20,27 @@ const MiniPlayer: React.FC = () => {
     }
   }, [progress, duration]);
   
-  if (!currentSong) {
+  if (!currentSong || isMinimized) {
     return null;
   }
   
   const handlePress = () => {
     router.push('/player');
   };
+
+  const handleClose = () => {
+    minimizePlayer();
+  };
   
   return (
     <TouchableOpacity 
-      style={styles.container} 
+      style={[
+        styles.container, 
+        { 
+          backgroundColor: colors.player,
+          borderTopColor: colors.border
+        }
+      ]} 
       onPress={handlePress}
       activeOpacity={0.7}
     >
@@ -37,7 +48,10 @@ const MiniPlayer: React.FC = () => {
         <View 
           style={[
             styles.progressFill, 
-            { width: `${progressWidth}%` }
+            { 
+              width: `${progressWidth}%`,
+              backgroundColor: colors.primary
+            }
           ]} 
         />
       </View>
@@ -51,10 +65,10 @@ const MiniPlayer: React.FC = () => {
         />
         
         <View style={styles.infoContainer}>
-          <Text style={styles.title} numberOfLines={1}>
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
             {currentSong.title}
           </Text>
-          <Text style={styles.artist} numberOfLines={1}>
+          <Text style={[styles.artist, { color: colors.subtext }]} numberOfLines={1}>
             {currentSong.artist}
           </Text>
         </View>
@@ -65,9 +79,9 @@ const MiniPlayer: React.FC = () => {
             onPress={togglePlay}
           >
             {isPlaying ? (
-              <Pause color={Colors.dark.text} size={24} />
+              <Pause color={colors.text} size={24} />
             ) : (
-              <Play color={Colors.dark.text} size={24} />
+              <Play color={colors.text} size={24} />
             )}
           </TouchableOpacity>
           
@@ -75,7 +89,14 @@ const MiniPlayer: React.FC = () => {
             style={styles.controlButton} 
             onPress={playNext}
           >
-            <SkipForward color={Colors.dark.text} size={24} />
+            <SkipForward color={colors.text} size={24} />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.closeButton} 
+            onPress={handleClose}
+          >
+            <X color={colors.text} size={20} />
           </TouchableOpacity>
         </View>
       </View>
@@ -86,21 +107,18 @@ const MiniPlayer: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 60, // Positioned above the tab bar
     left: 0,
     right: 0,
-    backgroundColor: Colors.dark.player,
     borderTopWidth: 1,
-    borderTopColor: Colors.dark.border,
   },
   progressBar: {
     height: 2,
-    backgroundColor: Colors.dark.border,
+    backgroundColor: 'transparent',
     width: '100%',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: Colors.dark.primary,
   },
   content: {
     flexDirection: 'row',
@@ -118,12 +136,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    color: Colors.dark.text,
     fontSize: 14,
     fontWeight: '500',
   },
   artist: {
-    color: Colors.dark.subtext,
     fontSize: 12,
     marginTop: 2,
   },
@@ -133,6 +149,10 @@ const styles = StyleSheet.create({
   },
   controlButton: {
     padding: 8,
+  },
+  closeButton: {
+    padding: 8,
+    marginLeft: 4,
   },
 });
 
