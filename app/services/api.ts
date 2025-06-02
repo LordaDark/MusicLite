@@ -1,6 +1,6 @@
 // TODO: Replace with your deployed backend URL or http://localhost:5000 for local testing
 // const BACKEND_URL = 'YOUR_RENDER_BACKEND_URL_HERE';
-const BACKEND_URL = 'http://127.0.0.1:5000'; // Default for local testing
+const BACKEND_URL = 'https://musiclite.onrender.com'; // Default for local testing
 
 export interface VideoInfo {
     id: string | null;

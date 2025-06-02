@@ -16,6 +16,7 @@ def extract_info():
         'format': 'bestaudio/best',
         'noplaylist': True,
         'extract_flat': 'in_playlist', # Faster for playlists, gets basic info
+        'cookiefile': 'cookies.txt',
         # 'dump_single_json': True, # Use this if you want to parse the full JSON output
     }
 
