@@ -3,24 +3,28 @@
  * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
  */
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const primaryColor = '#00FF00'; // Fluorescent Green
+const secondaryColor = '#BB00FF'; // Fluorescent Purple
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: '#000000', // Black
+    background: '#FFFFFF', // White
+    tint: primaryColor, // Fluorescent Green for interactive elements
+    icon: '#000000', // Black for default icons
+    tabIconDefault: '#000000', // Black
+    tabIconSelected: primaryColor, // Fluorescent Green
+    primary: primaryColor,
+    secondary: secondaryColor,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    text: '#FFFFFF', // White
+    background: '#000000', // Black
+    tint: primaryColor, // Fluorescent Green for interactive elements
+    icon: '#FFFFFF', // White for default icons
+    tabIconDefault: '#FFFFFF', // White
+    tabIconSelected: primaryColor, // Fluorescent Green
+    primary: primaryColor,
+    secondary: secondaryColor,
   },
 };
