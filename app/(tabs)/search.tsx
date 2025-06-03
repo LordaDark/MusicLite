@@ -5,11 +5,11 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { MaterialIcons } from '@expo/vector-icons';
 import axios from 'axios'; // Import axios for API calls
 // import ytdl from 'react-native-ytdl'; // Replaced with backend API call
-import { getVideoInfo, VideoInfo } from '@/app/services/api'; // Import the API service
 // TODO: expo-av is deprecated, consider migrating to expo-audio / expo-video in SDK 54+
-import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+// import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av'; // Handled by PlayerContext
+import { usePlayer } from '@/contexts/PlayerContext'; // Import usePlayer
+import React, { useState } from 'react';
+import { ActivityIndicator, FlatList, Image, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Placeholder data
@@ -25,12 +25,13 @@ export default function SearchScreen() {
   const [searchText, setSearchText] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // For search results loading
   const [error, setError] = useState<string | null>(null);
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [currentPlaying, setCurrentPlaying] = useState<string | null>(null); // videoId of current playing song
+  // const [sound, setSound] = useState<Audio.Sound | null>(null); // Handled by PlayerContext
+  // const [currentPlaying, setCurrentPlaying] = useState<string | null>(null); // Handled by PlayerContext
 
   const currentColors = Colors[colorScheme];
+  const { playSong: contextPlaySong, currentSong: contextCurrentSong, isLoadingSong: isPlayerLoading } = usePlayer(); // Use PlayerContext
 
   const handleSearch = async () => {
     if (!searchText.trim()) {
@@ -63,93 +64,21 @@ export default function SearchScreen() {
     setIsLoading(false);
   };
 
-  async function playSong(videoId: string, title: string) {
-    if (sound) {
-      console.log('Unloading previous sound...');
-      await sound.unloadAsync();
-      setSound(null);
-      setCurrentPlaying(null);
-    }
+  const handlePlaySong = async (videoId: string, title: string) => {
+    console.log(`SearchScreen: Requesting to play: ${title} (ID: ${videoId})`);
+    // Alert.alert("Caricamento audio", `Tentativo di caricare: ${title}`); // Optional: Handled by PlayerContext's isLoadingSong
+    await contextPlaySong(videoId); // Call playSong from PlayerContext
+  };
 
-    if (currentPlaying === videoId) { // If same song is tapped, stop it
-      console.log('Stopping currently playing song');
-      return;
-    }
-
-    console.log(`Attempting to play: ${title} (ID: ${videoId})`);
-    Alert.alert("Caricamento audio", `Tentativo di caricare: ${title}`);
-    setIsLoading(true); // Indicate loading when fetching from backend
-
-    try {
-      const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-      const videoDetails: VideoInfo | null = await getVideoInfo(videoUrl);
-
-      if (!videoDetails || !videoDetails.audio_url) {
-        Alert.alert('Errore', 'Impossibile ottenere lo stream audio dal backend.');
-        console.error('Failed to get audio stream from backend for video ID:', videoId, videoDetails);
-        setIsLoading(false);
-        return;
-      }
-      const audioStreamUrl = videoDetails.audio_url;
-
-      console.log('Loading Sound from URL (via backend):', audioStreamUrl);
-      // Update title if backend provides a more accurate one
-      const displayTitle = videoDetails.title || title;
-      Alert.alert("Caricamento audio", `Pronto per riprodurre: ${displayTitle}`);
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true, // Important for background playback
-        interruptionModeIOS: InterruptionModeIOS.DoNotMix, // Use imported enum
-        shouldDuckAndroid: true,
-        interruptionModeAndroid: InterruptionModeAndroid.DoNotMix, // Use imported enum
-        playThroughEarpieceAndroid: false,
-      });
-
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: audioStreamUrl },
-        { shouldPlay: true }
-      );
-      setSound(newSound);
-      setCurrentPlaying(videoId);
-      console.log('Playback started');
-      setIsLoading(false);
-
-      newSound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
-          console.log('Playback finished');
-          newSound.unloadAsync();
-          setSound(null);
-          setCurrentPlaying(null);
-        }
-      });
-
-    } catch (e: any) { // Catch any error type
-      console.error('Error playing sound (after backend call): ', e);
-      let errorMessage = 'Impossibile riprodurre la canzone selezionata.';
-      // Note: AxiosError check might not be relevant here if getVideoInfo handles it
-      if (e.message) {
-        errorMessage = e.message;
-      }
-      Alert.alert('Errore di Riproduzione', errorMessage);
-      if (sound) {
-        sound.unloadAsync();
-        setSound(null);
-        setCurrentPlaying(null);
-      }
-      setIsLoading(false);
-    }
-  }
-
-  // Effect to unload sound when component unmounts
-  useEffect(() => {
-    return sound
-      ? () => {
-          console.log('Unloading sound on component unmount');
-          sound.unloadAsync();
-        }
-      : undefined;
-  }, [sound]);
+  // useEffect(() => {
+  //   // Sound unloading is now handled within PlayerContext
+  //   return sound
+  //     ? () => {
+  //         console.log('Unloading sound on component unmount');
+  //         sound.unloadAsync();
+  //       }
+  //     : undefined;
+  // }, [sound]);
 
 
   return (
@@ -177,7 +106,7 @@ export default function SearchScreen() {
         )}
       </View>
 
-      {isLoading ? (
+      {isLoading || isPlayerLoading ? ( // Show loader if search is loading OR player is loading a song
         <ActivityIndicator size="large" color={currentColors.primary} style={styles.loader} />
       ) : error ? (
         <ThemedText style={styles.errorText}>{error}</ThemedText>
@@ -187,8 +116,8 @@ export default function SearchScreen() {
           keyExtractor={(item) => item.id.videoId}
           renderItem={({ item }) => (
             <TouchableOpacity 
-              style={[styles.resultItem, currentPlaying === item.id.videoId && { backgroundColor: currentColors.tint }]} // Apply playingItem style inline
-              onPress={() => playSong(item.id.videoId, item.snippet.title)} 
+              style={[styles.resultItem, contextCurrentSong?.id === item.id.videoId && { backgroundColor: currentColors.tint }]} // Highlight if it's the current song in context
+              onPress={() => handlePlaySong(item.id.videoId, item.snippet.title)} 
               accessibilityLabel={`Riproduci ${item.snippet.title}`}>
               <Image source={{ uri: item.snippet.thumbnails.default.url }} style={styles.resultThumbnail} />
               <View style={styles.resultInfo}>
